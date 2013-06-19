@@ -1,6 +1,6 @@
 # these can (and should) be overridden on the make command line for production
 # use
-CFLAGS :=  -g -Wall -O0
+CFLAGS :=  -g -Wall -O2
 # these are used for the benchmarks in addition to the normal CFLAGS. 
 # Normally no need to overwrite unless you find a new magic flag to make
 # STREAM run faster.
@@ -140,12 +140,13 @@ distclean: clean
 
 html: ${HTML} 
 
-html/numactl.html: numactl.8
+htmldir:
 	if [ ! -d html ] ; then mkdir html ; fi
+
+html/numactl.html: numactl.8 htmldir
 	groff -Thtml -man numactl.8 > html/numactl.html
 
-html/numa.html: numa.3
-	if [ ! -d html ] ; then mkdir html ; fi
+html/numa.html: numa.3 htmldir
 	groff -Thtml -man numa.3 > html/numa.html
 
 depend: .depend
