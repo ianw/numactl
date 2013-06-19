@@ -431,7 +431,7 @@ read_mask(char *s, struct bitmask *bmp)
  * /proc/self/status.
  */
 static void
-set_thread_constraints(void)
+set_task_constraints(void)
 {
 	int hicpu = sysconf(_SC_NPROCESSORS_CONF)-1;
 	int i;
@@ -567,7 +567,7 @@ set_sizes(void)
 	set_nodemask_size();	/* size of kernel nodemask_t */
 	set_numa_max_cpu();	/* size of kernel cpumask_t */
 	set_configured_cpus();	/* cpus listed in /sys/devices/system/cpu */
-	set_thread_constraints(); /* cpus and nodes for current thread */
+	set_task_constraints(); /* cpus and nodes for current task */
 }
 
 int
@@ -596,13 +596,13 @@ numa_num_possible_cpus(void)
 }
 
 int
-numa_num_thread_nodes(void)
+numa_num_task_nodes(void)
 {
 	return maxprocnode+1;
 }
 
 int
-numa_num_thread_cpus(void)
+numa_num_task_cpus(void)
 {
 	return maxproccpu+1;
 }
@@ -1016,9 +1016,6 @@ copy_bitmask_to_bitmask(struct bitmask *bmpfrom, struct bitmask *bmpto)
 		memcpy(bmpto->maskp, bmpfrom->maskp, bytes);
 		memset(((char *)bmpto->maskp)+bytes, 0,
 					CPU_BYTES(bmpto->size)-bytes);
-	} else {
-		bytes = CPU_BYTES(bmpfrom->size);
-		memcpy(bmpto->maskp, bmpfrom->maskp, bytes);
 	}
 }
 
@@ -1075,7 +1072,7 @@ numa_get_membind_v2(void)
 } 
 __asm__(".symver numa_get_membind_v2,numa_get_membind@@libnuma_1.2");
 
-//TODO:  Cliff:  do I need a v1 nodemask_t version?
+//TODO:  do we need a v1 nodemask_t version?
 struct bitmask *numa_get_mems_allowed(void)
 {
 	struct bitmask *bmp;
@@ -1272,11 +1269,11 @@ numa_node_to_cpus_v2(int node, struct bitmask *buffer)
 
 	if (node_cpu_mask_v2[node]) {
 		/* have already constructed a mask for this node */
-		if (buffer->size != node_cpu_mask_v2[node]->size) {
+		if (buffer->size < node_cpu_mask_v2[node]->size) {
 			numa_error("map size mismatch; abort\n");
 			return -1;
 		}
-		memcpy(buffer->maskp, node_cpu_mask_v2[node]->maskp, bufferlen);
+		copy_bitmask_to_bitmask(node_cpu_mask_v2[node], buffer);
 		return 0;
 	}
 
@@ -1667,7 +1664,7 @@ numa_parse_nodestring(char *s)
 	int maxnode = numa_max_node();
 	int invert = 0, relative = 0;
 	int conf_nodes = numa_num_configured_nodes();
-	int thread_nodes = numa_num_thread_nodes();
+	int task_nodes = numa_num_task_nodes();
 	char *end;
 	struct bitmask *mask;
 
@@ -1690,7 +1687,7 @@ numa_parse_nodestring(char *s)
 		int i;
 		if (!strcmp(s,"all")) {
 			int i;
-			for (i = 0; i < thread_nodes; i++)
+			for (i = 0; i < task_nodes; i++)
 				numa_bitmask_setbit(mask, i);
 			s+=4;
 			break;
@@ -1715,7 +1712,7 @@ numa_parse_nodestring(char *s)
 				numa_warn(W_nodeparse, "missing node argument %s\n", s);
 				goto err;
 			}
-			if (arg2 >= thread_nodes) {
+			if (arg2 >= task_nodes) {
 				numa_warn(W_nodeparse, "node argument %d out of range\n", arg2);
 				goto err;
 			}
@@ -1763,7 +1760,7 @@ numa_parse_cpustring(char *s)
 {
 	int invert = 0, relative=0;
 	int conf_cpus = numa_num_configured_cpus();
-	int thread_cpus = numa_num_thread_cpus();
+	int task_cpus = numa_num_task_cpus();
 	char *end;
 	struct bitmask *mask;
 
@@ -1785,7 +1782,7 @@ numa_parse_cpustring(char *s)
 
 		if (!strcmp(s,"all")) {
 			int i;
-			for (i = 0; i < thread_cpus; i++)
+			for (i = 0; i < task_cpus; i++)
 				numa_bitmask_setbit(mask, i);
 			s+=4;
 			break;
@@ -1795,7 +1792,7 @@ numa_parse_cpustring(char *s)
 			numa_warn(W_cpuparse, "unparseable cpu description `%s'\n", s);
 			goto err;
 		}
-		if (arg >= thread_cpus) {
+		if (arg >= task_cpus) {
 			numa_warn(W_cpuparse, "cpu argument %s is out of range\n", s);
 			goto err;
 		}
@@ -1811,7 +1808,7 @@ numa_parse_cpustring(char *s)
 				numa_warn(W_cpuparse, "missing cpu argument %s\n", s);
 				goto err;
 			}
-			if (arg2 >= thread_cpus) {
+			if (arg2 >= task_cpus) {
 				numa_warn(W_cpuparse, "cpu argument %s out of range\n", s);
 				goto err;
 			}

@@ -1,0 +1,11 @@
+quilt add bitops.h
+quilt add clearcache.h
+quilt add int.h
+quilt add mt.h
+quilt add numa.h
+quilt add numacompat1.h
+quilt add numaif.h
+quilt add numaint.h
+quilt add shm.h
+quilt add stream_lib.h
+quilt add util.h
