@@ -291,9 +291,13 @@ updating in newer kernels (Mel Gorman)
 - Fix to numademo memtest (allocation overhead) (L.S.)
 - Fix to checkaffinity test (possible shell errors) (L.S.)
 - Fix a printf in migspeed.c (Frederik Himpe)
-- Fix test/regress grep of node nummber (Cliff W.)
+- Fix test/regress grep of node number (Cliff W.)
 - Change numademo to finish in a timely manner on large machines (Cliff W.)
 - tested on 96p 48nodes
 
 2.0.3-rc1 - rc4
 - Add --dump-nodes option to numactl (Andi)
+
+2.0.4-rc1
+- Fix numactl for a machine with sparse cpu ids (Anton Blanchard)
+- Fix makefile to remove move_pages on make clean (Andi)
