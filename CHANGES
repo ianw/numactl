@@ -332,8 +332,14 @@ newer:
 - numa_num_task_cpus()/..nodes() to return actual counts (Cliff W.)
 2.0.6-rc3
 - Fix numa_get_run_node_mask() to return a cpuset-aware node mask (Cliff W.)
+  (replaced 110112)
 - Add a better warning to numa_node_to_cpus()
 2.0.6-rc4
 - Fix numa_get_mems_allowed() to use MPOL_F_MEMS_ALLOWED (Michael Spiegel)
 
 2.0.6 released Dec, 2010
+
+2.0.7-rc1
+- 110111 Add numa_realloc() (and realloc_test) (Vasileios Karakasis)
+- 110112 Re-fix numa_get_run_node_mask() and fix numa_get_run_node_mask (Cliff)
+- 110112 Fix the numa_get_run_node_mask() man page (cpus vs nodes) (Cliff W.)
