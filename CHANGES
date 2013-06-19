@@ -351,3 +351,6 @@ newer:
 - 110302 Fix two typos in numactl.8 (John Bradshaw)
 
 2.0.7 released Apr, 2011
+
+2.0.8-rc1
+- 110818 Checking of sucessful allocations in numademo (Petr Holasek)
