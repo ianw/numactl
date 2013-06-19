@@ -332,4 +332,6 @@ newer:
 - numa_num_task_cpus()/..nodes() to return actual counts (Cliff W.)
 2.0.6-rc3
 - Fix numa_get_run_node_mask() to return a cpuset-aware node mask (Cliff W.)
-- Add a better warning to
+- Add a better warning to numa_node_to_cpus()
+2.0.6-rc4
+- Fix numa_get_mems_allowed() to use MPOL_F_MEMS_ALLOWED (Michael Spiegel)
