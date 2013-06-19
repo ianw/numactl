@@ -32,7 +32,7 @@ if the cpumask is longer than 99 characters.
 
 0.6.4
 
-- Add Coppyright headers
+- Add Copyright headers
 
 0.6.5
 
@@ -377,3 +377,6 @@ newer:
 - 120823 Add numa_parse_cpustring take a const char* parameter (Petr Holasek)
 - 120823 Fix unused bufferlen variable (Petr Holasek)
 - 120823 Fix warnings when there are holes in numbering of nodes (Petr Holasek)
+2.0.8-rc6
+- 120911 Show distances on machines without a node 0 (Petr Holasek)
+- 121007 Replace perl numastat with a C command (Bill Gray)
