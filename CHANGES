@@ -313,3 +313,4 @@ updating in newer kernels (Mel Gorman)
 - Fix memory corrupting use of strlen (Jan Beulich)
 - Add a DSO destructor for memory deallocation (Neil Horman)
 
+2.0.4 released in July, 2010
