@@ -54,6 +54,8 @@ struct bitmask *numa_all_cpus_ptr = NULL;
 static unsigned long *node_cpu_mask_v1[NUMA_NUM_NODES];
 struct bitmask **node_cpu_mask_v2;
 
+char *nodes_allowed_list = NULL;
+
 WEAK void numa_error(char *where);
 
 #ifdef __thread
@@ -69,35 +71,10 @@ static int maxprocnode = -1;
 static int maxproccpu = -1;
 static int nodemask_sz = 0;
 static int cpumask_sz = 0;
-static int is_bigendian_64;
 
 int numa_exit_on_error = 0;
 int numa_exit_on_warn = 0;
 static void set_sizes(void);
-
-/*
- * return 1 if this machine is big-endian 64-bit
- */
-int
-big_endian64()
-{
-	union {
-		struct {
-			int a;
-			int b;
-		} ints;
-		struct {
-			long a;
-		} lng;
-	} ua;
-	if (sizeof(long) != 8)
-		return 0;
-	ua.ints.a = 0;
-	ua.ints.b = 3;
-	if (ua.lng.a == 3)
-		return 1;
-	return 0;
-}
 
 /*
  * There are two special functions, _init(void) and _fini(void), which
@@ -116,7 +93,6 @@ numa_init(void)
         for (i = 0; i < max; i++)
                 nodemask_set_compat((nodemask_t *)&numa_all_nodes, i);
 	memset(&numa_no_nodes, 0, sizeof(numa_no_nodes));
-	is_bigendian_64 = big_endian64();
 }
 
 /*
@@ -129,18 +105,10 @@ numa_init(void)
 static unsigned int
 _getbit(const struct bitmask *bmp, unsigned int n)
 {
-	unsigned int *ip;
-
-        if (n < bmp->size) {
-		if (is_bigendian_64) {
-			ip = (unsigned int *)bmp->maskp;
-                	return (ip[n/bitsperint] >>
-				(n % bitsperint)) & 1;
-		} else
-                	return (bmp->maskp[n/bitsperlong] >>
-				(n % bitsperlong)) & 1;
-        } else
-                return 0;
+	if (n < bmp->size)
+		return (bmp->maskp[n/bitsperlong] >> (n % bitsperlong)) & 1;
+	else
+		return 0;
 }
 
 static void
@@ -480,11 +448,17 @@ set_thread_constraints(void)
 
 	while (getline(&buffer, &buflen, f) > 0) {
 		if (strncmp(buffer,"Cpus_allowed:",13) == 0)
-			maxproccpu = read_mask(buffer + 15, numa_all_cpus_ptr);
+			maxproccpu = read_mask(buffer + 13, numa_all_cpus_ptr);
 
 		if (strncmp(buffer,"Mems_allowed:",13) == 0) {
 			maxprocnode =
-				read_mask(buffer + 15, numa_all_nodes_ptr);
+				read_mask(buffer + 13, numa_all_nodes_ptr);
+		}
+		if (strncmp(buffer,"Mems_allowed_list:",18) == 0) {
+			nodes_allowed_list = malloc(strlen(buffer)-18);
+			strncpy(nodes_allowed_list, buffer + 19,
+				strlen(buffer) - 19);
+			nodes_allowed_list[strlen(nodes_allowed_list)-1] = '\0';
 		}
 	}
 	fclose(f);
@@ -953,8 +927,10 @@ void *numa_alloc_onnode(size_t size, int node)
 	mem = mmap(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS,
 		   0, 0);  
 	if (mem == (char *)-1)
-		return NULL;		
-	dombind(mem, size, bind_policy, bmp);
+		mem = NULL;
+	else 
+		dombind(mem, size, bind_policy, bmp);
+	numa_bitmask_free(bmp);
 	return mem; 	
 } 
 
@@ -1334,6 +1310,33 @@ __asm__(".symver numa_node_to_cpus_v2,numa_node_to_cpus@@libnuma_1.2");
 make_internal_alias(numa_node_to_cpus_v1);
 make_internal_alias(numa_node_to_cpus_v2);
 
+/* report the node of the specified cpu */
+int numa_node_of_cpu(int cpu)
+{
+	struct bitmask *bmp;
+	int ncpus, nnodes, node, ret;
+
+	ncpus = numa_num_possible_cpus();
+	if (cpu > ncpus){
+		errno = EINVAL;
+		return -1;
+	}
+	bmp = numa_bitmask_alloc(ncpus);
+	nnodes = numa_num_configured_nodes();
+	for (node = 0; node < nnodes; node++){
+		numa_node_to_cpus_v2_int(node, bmp);
+		if (numa_bitmask_isbitset(bmp, cpu)){
+			ret = node;
+			goto end;
+		}
+	}
+	ret = -1;
+	errno = EINVAL;
+end:
+	numa_bitmask_free(bmp);
+	return ret;
+}
+
 
 int
 numa_run_on_node_mask_v1(const nodemask_t *mask)
@@ -1531,6 +1534,7 @@ int numa_run_on_node(int node)
 int numa_preferred(void)
 { 
 	int policy;
+	int ret;
 	struct bitmask *bmp;
 
 	bmp = numa_allocate_nodemask();
@@ -1539,12 +1543,17 @@ int numa_preferred(void)
 		int i;
 		int max = numa_num_possible_nodes();
 		for (i = 0; i < max ; i++) 
-			if (numa_bitmask_isbitset(bmp, i))
-				return i; 
+			if (numa_bitmask_isbitset(bmp, i)){
+				ret = i;
+				goto end;
+			}
 	}
 	/* could read the current CPU from /proc/self/status. Probably 
 	   not worth it. */
-	return 0; /* or random one? */
+	ret = 0; /* or random one? */
+end:
+	numa_bitmask_free(bmp);
+	return ret;
 }
 
 void numa_set_preferred(int node)

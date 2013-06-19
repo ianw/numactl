@@ -199,40 +199,39 @@ static void print_distances(int maxnode)
 
 void print_node_cpus(int node)
 {
-	int len = 1;
 	int conf_cpus = numa_num_configured_cpus();
+	int i, err;
+	struct bitmask *cpus;
 
-	for (;;) { 
-		int i, err;
-		struct bitmask *cpus;
-
-		cpus = numa_bitmask_alloc(conf_cpus);
-		errno = 0;
-		err = numa_node_to_cpus(node, cpus);
-		if (err < 0) {
-			if (errno == ERANGE) {
-				len *= 2; 
-				continue;
-			}
-			break; 
-		}
-		for (i = 0; i < len*BITS_PER_LONG; i++) 
+	cpus = numa_bitmask_alloc(conf_cpus);
+	err = numa_node_to_cpus(node, cpus);
+	if (err >= 0) 
+		for (i = 0; i < conf_cpus; i++) 
 			if (numa_bitmask_isbitset(cpus, i))
 				printf(" %d", i);
-		break;
-	}
 	putchar('\n');
 }
 
 void hardware(void)
 { 
-	int i;
+	int i, numconfigurednodes=0;
 	int maxnode = numa_num_configured_nodes()-1;
-	printf("available: %d nodes (0-%d)\n", 1+maxnode, maxnode); 	
+
+	for (i = 0; i<=maxnode; i++)
+		if (numa_bitmask_isbitset(numa_all_nodes_ptr, i))
+			numconfigurednodes++;
+	if (nodes_allowed_list)
+		printf("available: %d nodes (%s)\n", numconfigurednodes, nodes_allowed_list);
+	else
+		printf("available: %d nodes (0-%d)\n", maxnode+1, maxnode); 	
+		
 	for (i = 0; i <= maxnode; i++) { 
 		char buf[64];
 		long long fr;
 		unsigned long long sz = numa_node_size64(i, &fr); 
+		if (!numa_bitmask_isbitset(numa_all_nodes_ptr, i))
+			continue;
+
 		printf("node %d cpus:", i);
 		print_node_cpus(i);
 		printf("node %d size: %s\n", i, fmt_mem(sz, buf));
