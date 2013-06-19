@@ -354,3 +354,5 @@ newer:
 
 2.0.8-rc1
 - 110818 Checking of sucessful allocations in numademo (Petr Holasek)
+2.0.8-rc2
+- 110823 Fix of numactl (--touch) warnings and man page (Cliff W.)
