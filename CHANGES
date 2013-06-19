@@ -1,5 +1,7 @@
 [Note: newer entries are at the bottom]
 
+The actual patches and their series are in the tarball:  patches.tar.gz
+
 Early prehistory:
 
 - Fix some warnings
@@ -346,3 +348,6 @@ newer:
 2.0.7-rc2
 - 110112 Fix the cpu and node parsing to be cpuset aware (Cliff W.)
 - 110112 Fix test/checkaffinity to be cpuset aware (Cliff W.)
+- 110302 Fix two typos in numactl.8 (John Bradshaw)
+
+2.0.7 released Apr, 2011
