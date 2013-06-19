@@ -54,8 +54,6 @@ struct bitmask *numa_all_cpus_ptr = NULL;
 static unsigned long *node_cpu_mask_v1[NUMA_NUM_NODES];
 struct bitmask **node_cpu_mask_v2;
 
-char *nodes_allowed_list = NULL;
-
 WEAK void numa_error(char *where);
 
 #ifdef __thread
@@ -93,6 +91,17 @@ numa_init(void)
         for (i = 0; i < max; i++)
                 nodemask_set_compat((nodemask_t *)&numa_all_nodes, i);
 	memset(&numa_no_nodes, 0, sizeof(numa_no_nodes));
+}
+
+void
+numa_fini(void)
+{
+	if (numa_all_cpus_ptr)
+		numa_bitmask_free(numa_all_cpus_ptr);
+	if (numa_all_nodes_ptr)
+		numa_bitmask_free(numa_all_nodes_ptr);
+	if (numa_no_nodes_ptr)
+		numa_bitmask_free(numa_no_nodes_ptr);
 }
 
 /*
@@ -460,12 +469,6 @@ set_task_constraints(void)
 			maxprocnode =
 				read_mask(mask, numa_all_nodes_ptr);
 		}
-		if (strncmp(buffer,"Mems_allowed_list:",18) == 0) {
-			nodes_allowed_list = malloc(strlen(buffer)-18);
-			strncpy(nodes_allowed_list, buffer + 19,
-				strlen(buffer) - 19);
-			nodes_allowed_list[strlen(nodes_allowed_list)-1] = '\0';
-		}
 	}
 	fclose(f);
 	free(buffer);
@@ -533,7 +536,6 @@ set_numa_max_cpu(void)
 static void
 set_configured_cpus(void)
 {
-	int		filecount=0;
 	char		*dirnamep = "/sys/devices/system/cpu";
 	struct dirent	*dirent;
 	DIR		*dir;
@@ -545,15 +547,19 @@ set_configured_cpus(void)
 		return;
 	}
 	while ((dirent = readdir(dir)) != 0) {
-		if (!strncmp("cpu", dirent->d_name, 3)) {
-			filecount++;
-		} else {
-			continue;
+		if (dirent->d_type == DT_DIR
+		    && !strncmp("cpu", dirent->d_name, 3)) {
+			long cpu = strtol(dirent->d_name + 3, NULL, 10);
+
+			if (cpu < INT_MAX && cpu > maxconfiguredcpu)
+				maxconfiguredcpu = cpu;
 		}
 	}
 	closedir(dir);
-	maxconfiguredcpu = filecount-1; /* high cpu number */
-	return;
+	if (maxconfiguredcpu < 0) {
+		/* fall back to using the online cpu count */
+		maxconfiguredcpu = sysconf(_SC_NPROCESSORS_CONF) - 1;
+	}
 }
 
 /*
