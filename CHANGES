@@ -380,3 +380,6 @@ newer:
 2.0.8-rc6
 - 120911 Show distances on machines without a node 0 (Petr Holasek)
 - 121007 Replace perl numastat with a C command (Bill Gray)
+- 121011 Allow an install location PREFIX in the Makefile (Frank Tampe)
+
+2.0.8 released Oct, 2012
