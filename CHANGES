@@ -335,3 +335,5 @@ newer:
 - Add a better warning to numa_node_to_cpus()
 2.0.6-rc4
 - Fix numa_get_mems_allowed() to use MPOL_F_MEMS_ALLOWED (Michael Spiegel)
+
+2.0.6 released Dec, 2010
