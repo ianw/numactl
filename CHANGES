@@ -343,3 +343,6 @@ newer:
 - 110111 Add numa_realloc() (and realloc_test) (Vasileios Karakasis)
 - 110112 Re-fix numa_get_run_node_mask() and fix numa_get_run_node_mask (Cliff)
 - 110112 Fix the numa_get_run_node_mask() man page (cpus vs nodes) (Cliff W.)
+2.0.7-rc2
+- 110112 Fix the cpu and node parsing to be cpuset aware (Cliff W.)
+- 110112 Fix test/checkaffinity to be cpuset aware (Cliff W.)
