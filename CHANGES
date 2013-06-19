@@ -270,7 +270,7 @@ updating in newer kernels (Mel Gorman)
 - Fixes to numademo (min/max, and array index; from Kent Liu)
 - Fixes to Makefile and permissions; from Berhard Walle
 
-2.0.3-rc1 and rc2
+2.0.3-rc1 - rc3
 - Fixes to libnuma.c numa.h numacompat1.h by Daniel Gollub to fix v1 compatiblity
 - Restore nodemask_zero() and nodemask_equal()
 - Drops a warning message about this not being a NUMA system
@@ -293,4 +293,7 @@ updating in newer kernels (Mel Gorman)
 - Fix a printf in migspeed.c (Frederik Himpe)
 - Fix test/regress grep of node nummber (Cliff W.)
 - Change numademo to finish in a timely manner on large machines (Cliff W.)
--- tested on 96p 48nodes --
+- tested on 96p 48nodes
+
+2.0.3-rc1 - rc4
+- Add --dump-nodes option to numactl (Andi)
