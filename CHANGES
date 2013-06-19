@@ -369,3 +369,11 @@ newer:
 - 120106 Install man pages migspeed, migratepages and numastat (Petr Holasek)
 - 120106 Warnings in numa_node_to_cpus_v1 to be more verbose (Petr Holasek)
 - 120216 Fix for numademo: msize check for ptrchase test (Petr Holasek)
+2.0.8-rc5
+- 120823 Fix calculation of maxconfiguredcpu (Petr Holasek)
+- 120823 Fix: do not recalculate maxconfiguredcpu (Petr Holasek)
+- 120823 v.1.3 numa_num_possible_cpus symbol is exported (Petr Holasek)
+- 120823 Add all versions of numa_parse_{cpu,node}string() (Petr Holasek)
+- 120823 Add numa_parse_cpustring take a const char* parameter (Petr Holasek)
+- 120823 Fix unused bufferlen variable (Petr Holasek)
+- 120823 Fix warnings when there are holes in numbering of nodes (Petr Holasek)
