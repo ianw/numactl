@@ -365,3 +365,7 @@ newer:
 - 111214 Clean regression test temp files (Andi Kleen)
 - 111214 Add an option to memhog to disable transparent huge pages (Andi Kleen)
 - 111214 Fix the test suite on systems that force THP, disable them (Andi Kleen)
+2.0.8-rc4
+- 120106 Install man pages migspeed, migratepages and numastat (Petr Holasek)
+- 120106 Warnings in numa_node_to_cpus_v1 to be more verbose (Petr Holasek)
+- 120216 Fix for numademo: msize check for ptrchase test (Petr Holasek)
