@@ -1,0 +1,13 @@
+
+test shared interleaving (fork + touch)
+
+need to fix hugetlbfs to allow holey files (for numactl)
+
+numademo numbers seem to be unstable. investigate.
+
+get_mempolicy man page is unfinished
+
+manpages need proof reading
+
+need more test programs
+
