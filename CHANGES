@@ -356,3 +356,12 @@ newer:
 - 110818 Checking of sucessful allocations in numademo (Petr Holasek)
 2.0.8-rc2
 - 110823 Fix of numactl (--touch) warnings and man page (Cliff W.)
+2.0.8-rc3
+- 111214 Add "same" nodemask alias to numactl (Andi Kleen)
+- 111214 Add constructors for numa_init/exit (Andi Kleen)
+- 111214 Add use of glibc syscall stub where possible (Andi Kleen)
+- 111214 Fix regress1 to show all the problems before exiting (Andi Kleen)
+- 111214 Add IO affinity support (Andi Kleen)
+- 111214 Clean regression test temp files (Andi Kleen)
+- 111214 Add an option to memhog to disable transparent huge pages (Andi Kleen)
+- 111214 Fix the test suite on systems that force THP, disable them (Andi Kleen)

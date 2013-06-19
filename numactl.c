@@ -73,6 +73,12 @@ void usage(void)
 		"\n"
 		"memory policy is --interleave, --preferred, --membind, --localalloc\n"
 		"nodes is a comma delimited list of node numbers or A-B ranges or all.\n"
+		"Instead of a number a node can also be:\n"
+		"  netdev:DEV the node connected to network device DEV\n"
+		"  file:PATH  the node the block device of path is connected to\n"
+		"  ip:HOST    the node of the network device host routes through\n"
+		"  block:PATH the node of block device path\n"
+		"  pci:[seg:]bus:dev[:func] The node of a PCI device\n"
 		"cpus is a comma delimited list of cpu numbers or A-B ranges or all\n"
 		"all ranges can be inverted with !\n"
 		"all numbers and ranges can be made cpuset-relative with +\n"
@@ -366,6 +372,20 @@ void check_shmbeyond(char *msg)
 	}
 }
 
+static struct bitmask *numactl_parse_nodestring(char *s)
+{
+	static char *last;
+
+	if (s[0] == 's' && !strcmp(s, "same")) {
+		if (!last)
+			usage_msg("same needs previous node specification");
+		s = last;
+	} else {
+		last = s;
+	}
+	return numa_parse_nodestring(s);
+}
+
 int main(int ac, char **av)
 {
 	int c, i, nnodes=0;
@@ -386,7 +406,7 @@ int main(int ac, char **av)
 			exit(0);
 		case 'i': /* --interleave */
 			checknuma();
-			mask = numa_parse_nodestring(optarg);
+			mask = numactl_parse_nodestring(optarg);
 			if (!mask) {
 				printf ("<%s> is invalid\n", optarg);
 				usage();
@@ -404,7 +424,7 @@ int main(int ac, char **av)
 		case 'c': /* --cpubind */
 			dontshm("-c/--cpubind/--cpunodebind");
 			checknuma();
-			mask = numa_parse_nodestring(optarg);
+			mask = numactl_parse_nodestring(optarg);
 			if (!mask) {
 				printf ("<%s> is invalid\n", optarg);
 				usage();
@@ -435,7 +455,7 @@ int main(int ac, char **av)
 		case 'm': /* --membind */
 			checknuma();
 			setpolicy(MPOL_BIND);
-			mask = numa_parse_nodestring(optarg);
+			mask = numactl_parse_nodestring(optarg);
 			if (!mask) {
 				printf ("<%s> is invalid\n", optarg);
 				usage();
@@ -453,7 +473,7 @@ int main(int ac, char **av)
 		case 'p': /* --preferred */
 			checknuma();
 			setpolicy(MPOL_PREFERRED);
-			mask = numa_parse_nodestring(optarg);
+			mask = numactl_parse_nodestring(optarg);
 			if (!mask) {
 				printf ("<%s> is invalid\n", optarg);
 				usage();
