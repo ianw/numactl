@@ -327,3 +327,4 @@ newer:
 - Fix numa_num_configured_nodes() to match man page description (Tim Pepper)
 - Clarify comment for numa_all_nodes_ptr extern (Tim Pepper)
 - numactl --hardware should handle sparse node numbering (Tim Pepper)
+- Maintain compatibility with 2.0.3 numa_num_thread...()'s (Cliff W.)
