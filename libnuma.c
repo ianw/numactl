@@ -69,25 +69,32 @@ static int maxprocnode = -1;
 static int maxproccpu = -1;
 static int nodemask_sz = 0;
 static int cpumask_sz = 0;
+static int is_bigendian_64;
 
 int numa_exit_on_error = 0;
 int numa_exit_on_warn = 0;
 static void set_sizes(void);
 
-static inline void
-nodemask_set_v1(nodemask_t *mask, int node)
+/*
+ * return 1 if this machine is big-endian 64-bit
+ */
+int
+big_endian64()
 {
-	mask->n[node / (8*sizeof(unsigned long))] |=
-		(1UL<<(node%(8*sizeof(unsigned long))));
-}
-
-static inline int
-nodemask_isset_v1(const nodemask_t *mask, int node)
-{
-	if ((unsigned)node >= NUMA_NUM_NODES)
+	union {
+		struct {
+			int a;
+			int b;
+		} ints;
+		struct {
+			long a;
+		} lng;
+	} ua;
+	if (sizeof(long) != 8)
 		return 0;
-	if (mask->n[node / (8*sizeof(unsigned long))] &
-		(1UL<<(node%(8*sizeof(unsigned long)))))
+	ua.ints.a = 0;
+	ua.ints.b = 3;
+	if (ua.lng.a == 3)
 		return 1;
 	return 0;
 }
@@ -107,8 +114,9 @@ numa_init(void)
 	/* numa_all_nodes should represent existing nodes on this system */
         max = numa_num_configured_nodes();
         for (i = 0; i < max; i++)
-                nodemask_set_v1((nodemask_t *)&numa_all_nodes, i);
+                nodemask_set_compat((nodemask_t *)&numa_all_nodes, i);
 	memset(&numa_no_nodes, 0, sizeof(numa_no_nodes));
+	is_bigendian_64 = big_endian64();
 }
 
 /*
@@ -121,10 +129,18 @@ numa_init(void)
 static unsigned int
 _getbit(const struct bitmask *bmp, unsigned int n)
 {
-	if (n < bmp->size)
-		return (bmp->maskp[n/bitsperlong] >> (n % bitsperlong)) & 1;
-	else
-		return 0;
+	unsigned int *ip;
+
+        if (n < bmp->size) {
+		if (is_bigendian_64) {
+			ip = (unsigned int *)bmp->maskp;
+                	return (ip[n/bitsperint] >>
+				(n % bitsperint)) & 1;
+		} else
+                	return (bmp->maskp[n/bitsperlong] >>
+				(n % bitsperlong)) & 1;
+        } else
+                return 0;
 }
 
 static void
@@ -306,9 +322,6 @@ set_configured_nodes(void)
 
 	d = opendir("/sys/devices/system/node");
 	if (!d) {
-		numa_warn(W_nosysfs,
-		   "/sys not mounted or no numa system. Assuming one node: %s",
-		  	strerror(errno));
 		maxconfigurednode = 0;
 	} else {
 		while ((de = readdir(d)) != NULL) {
@@ -389,54 +402,57 @@ static int
 read_mask(char *s, struct bitmask *bmp)
 {
 	char *end = s;
-	char *prevend;
-	unsigned int *start = (unsigned int *)bmp->maskp;
-	unsigned int *p = start;
-	unsigned int *q;
-	unsigned int i;
-	unsigned int n = 0;
+	int tmplen = (bmp->size + bitsperint - 1) / bitsperint;
+	unsigned int tmp[tmplen];
+	unsigned int *start = tmp;
+	unsigned int i, n = 0, m = 0;
 
 	i = strtoul(s, &end, 16);
 
-	prevend = end;
 	/* Skip leading zeros */
 	while (!i && *end++ == ',') {
-		prevend = end;
 		i = strtoul(end, &end, 16);
 	}
-	end = prevend;
 
 	if (!i)
 		/* End of string. No mask */
 		return -1;
 
+	start[n++] = i;
 	/* Read sequence of ints */
-	do {
-		start[n++] = i;
+	while (*end++ == ',') {
 		i = strtoul(end, &end, 16);
-	} while (*end++ == ',');
-	n--;
+		start[n++] = i;
+
+		/* buffer overflow */
+		if (n > tmplen)
+			return -1;
+	}
 
 	/*
 	 * Invert sequence of ints if necessary since the first int
 	 * is the highest and we put it first because we read it first.
 	 */
-	for (q = start + n, p = start; p < q; q--, p++) {
-		unsigned int x = *q;
+	while (n) {
+		int w;
+		unsigned long x = 0;
+		/* read into long values in an endian-safe way */
+		for (w = 0; n && w < bitsperlong; w += bitsperint)
+			x |= ((unsigned long)start[n-- - 1] << w);
 
-		*q = *p;
-		*p = x;
+		bmp->maskp[m++] = x;
 	}
+	m--;
 
 	/* Poor mans fls() */
-	for(i = 31; i >= 0; i--)
-		if (test_bit(i, start + n))
+	for(i = bitsperlong - 1; i >= 0; i--)
+		if (test_bit(i, bmp->maskp + m))
 			break;
 
 	/*
 	 * Return the last bit set
 	 */
-	return ((sizeof(unsigned int)*8) * n) + i;
+	return bitsperlong * m + i;
 }
 
 /*
@@ -509,7 +525,7 @@ set_thread_constraints(void)
 static void
 set_numa_max_cpu(void)
 {
-	int len = 2048;
+	int len = 4096;
 	int n;
 	int olde = errno;
 	struct bitmask *buffer;
@@ -995,7 +1011,7 @@ copy_bitmask_to_nodemask(struct bitmask *bmp, nodemask_t *nmp)
 		if (i >= max)
 			break;
 		if (numa_bitmask_isbitset(bmp, i))
-                	nodemask_set_v1((nodemask_t *)nmp, i);
+                	nodemask_set_compat((nodemask_t *)nmp, i);
 	}
 }
 
@@ -1034,7 +1050,7 @@ copy_nodemask_to_bitmask(nodemask_t *nmp, struct bitmask *bmp)
 	if (max > bmp->size)
 		max = bmp->size;
 	for (i=0; i<max; i++) {
-		if (nodemask_isset_v1(nmp, i))
+		if (nodemask_isset_compat(nmp, i))
 			numa_bitmask_setbit(bmp, i);
 	}
 }
@@ -1329,7 +1345,7 @@ numa_run_on_node_mask_v1(const nodemask_t *mask)
 	for (i = 0; i < NUMA_NUM_NODES; i++) {
 		if (mask->n[i / BITS_PER_LONG] == 0)
 			continue;
-		if (nodemask_isset_v1(mask, i)) {
+		if (nodemask_isset_compat(mask, i)) {
 			if (numa_node_to_cpus_v1_int(i, nodecpus, CPU_BYTES(ncpus)) < 0) {
 				numa_warn(W_noderunmask,
 					  "Cannot read node cpumask from sysfs");
