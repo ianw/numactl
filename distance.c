@@ -58,15 +58,13 @@ static int read_distance_table(void)
 	int *table = NULL;
 	int err = -1;
 
-	for (nd = 0;; nd++) {
+	for (nd = 0; nd<maxnode; nd++) {
 		char fn[100];
 		FILE *dfh;
 		sprintf(fn, "/sys/devices/system/node/node%d/distance", nd);
 		dfh = fopen(fn, "r");
 		if (!dfh) {
 			if (errno == ENOENT)
-				err = 0;
-			if (!err && nd<maxnode)
 				continue;
 			else
 				break;
