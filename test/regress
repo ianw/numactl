@@ -6,11 +6,12 @@
 # memory pressure
 # Copyright 2003,2004 Andi Kleen, SuSE Labs.
 
-BASE=`(cd ..; pwd)`
-export LD_LIBRARY_PATH=$BASE
-export PATH=$BASE:$PATH
+testdir=`dirname "$0"`
+: ${srcdir:=${testdir}/..}
+: ${builddir:=${srcdir}}
+export PATH=${builddir}:$PATH
 
-: ${NUMACTL:=$BASE/numactl}
+: ${NUMACTL:=${builddir}/numactl}
 VALGRIND=${VALGRIND:-}
 
 MB=$[1024*1024]
@@ -18,7 +19,7 @@ SIZE=$[15 * $MB]
 DEMOSIZE=$[10 * $MB]
 STAT_INTERVAL=5
 
-PAGESIZE=$(./pagesize)
+PAGESIZE=$("${builddir}/test/pagesize")
 PAGES=$[ $SIZE / $PAGESIZE ]
 HALFPAGES=$[ $PAGES / 2 ]
 HALFPAGES=$[ $HALFPAGES - 100 ]
@@ -73,7 +74,7 @@ probe_hardware()
 	if [ $numnodes -lt 2 ] ; then
 	    echo "need at least two nodes with at least $NEEDPAGES each of"
 	    echo "free memory for mempolicy regression tests"
-	    exit 1
+	    exit 77  # Skip test
 	fi
 }
 

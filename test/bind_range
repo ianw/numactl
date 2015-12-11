@@ -6,6 +6,10 @@
 
 # NOTE: Test needs two nodes and two cpus at least
 
+testdir=`dirname "$0"`
+: ${srcdir:=${testdir}/..}
+: ${builddir:=${srcdir}}
+export PATH=${builddir}:$PATH
 
 export old_mask
 
@@ -22,11 +26,11 @@ eval_test() {
 
 function check_arg_order
 {
-	../numactl --all --physcpubind=$HIGHESTCPU ls > /dev/null 2>&1
+	numactl --all --physcpubind=$HIGHESTCPU ls > /dev/null 2>&1
 	if [ $? == 1 ] ; then
 		return 1;
 	fi
-	../numactl --physcpubind=$HIGHESTCPU --all ls > /dev/null 2>&1
+	numactl --physcpubind=$HIGHESTCPU --all ls > /dev/null 2>&1
 	if [ $? == 0 ] ; then
 		return 1;
 	fi
@@ -38,11 +42,11 @@ function check_physcpubind
 {
 	reset_mask
 	set_cpu_affinity 0
-	../numactl --physcpubind=$HIGHESTCPU ls > /dev/null 2>&1
+	numactl --physcpubind=$HIGHESTCPU ls > /dev/null 2>&1
 	if [ $? == 0 ] ; then # shouldn't pass so easy
 		return 1;
 	fi
-	../numactl --all --physcpubind=$HIGHESTCPU ls > /dev/null 2>&1
+	numactl --all --physcpubind=$HIGHESTCPU ls > /dev/null 2>&1
 	if [ $? == 1 ] ; then # shouldn't fail
 		return 1;
 	fi
@@ -58,11 +62,11 @@ function check_cpunodebind
 	reset_mask
 	low_cpu_range=$(cat /sys/devices/system/node/node$LOWESTNODE/cpulist)
 	set_cpu_affinity $low_cpu_range
-	../numactl --cpunodebind=$HIGHESTNODE ls > /dev/null 2>&1
+	numactl --cpunodebind=$HIGHESTNODE ls > /dev/null 2>&1
 	if [ $? == 1 ] ; then # should pass
 		return 1;
 	fi
-	../numactl --all --cpunodebind=$HIGHESTNODE ls > /dev/null 2>&1
+	numactl --all --cpunodebind=$HIGHESTNODE ls > /dev/null 2>&1
 	if [ $? == 1 ] ; then # should pass for sure
 		return 1;
 	fi

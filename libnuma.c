@@ -31,6 +31,7 @@
 #include <sys/mman.h>
 #include <limits.h>
 
+#include "config.h"
 #include "numa.h"
 #include "numaif.h"
 #include "numaint.h"
@@ -57,12 +58,13 @@ struct bitmask *numa_possible_cpus_ptr = NULL;
 struct bitmask *numa_nodes_ptr = NULL;
 static struct bitmask *numa_memnode_ptr = NULL;
 static unsigned long *node_cpu_mask_v1[NUMA_NUM_NODES];
-struct bitmask **node_cpu_mask_v2;
+static struct bitmask **node_cpu_mask_v2;
 
 WEAK void numa_error(char *where);
 
-#ifdef __thread
+#ifndef TLS
 #warning "not threadsafe"
+#define __thread
 #endif
 
 static __thread int bind_policy = MPOL_BIND; 
@@ -1232,7 +1234,7 @@ numa_parse_bitmap_v2(char *line, struct bitmask *mask)
 __asm__(".symver numa_parse_bitmap_v2,numa_parse_bitmap@@libnuma_1.2");
 
 void
-init_node_cpu_mask_v2(void)
+static init_node_cpu_mask_v2(void)
 {
 	int nnodes = numa_max_possible_node_v2_int() + 1;
 	node_cpu_mask_v2 = calloc (nnodes, sizeof(struct bitmask *));
@@ -1274,11 +1276,13 @@ numa_node_to_cpus_v1(int node, unsigned long *buffer, int bufferlen)
 	sprintf(fn, "/sys/devices/system/node/node%d/cpumap", node);
 	f = fopen(fn, "r");
 	if (!f || getdelim(&line, &len, '\n', f) < 1) {
-		numa_warn(W_nosysfs2,
-		   "/sys not mounted or invalid. Assuming one node: %s",
-			  strerror(errno));
-		numa_warn(W_nosysfs2,
-		   "(cannot open or correctly parse %s)", fn);
+		if (numa_bitmask_isbitset(numa_nodes_ptr, node)) {
+			numa_warn(W_nosysfs2,
+			   "/sys not mounted or invalid. Assuming one node: %s",
+				  strerror(errno));
+			numa_warn(W_nosysfs2,
+			   "(cannot open or correctly parse %s)", fn);
+		}
 		bitmask.maskp = (unsigned long *)mask;
 		bitmask.size  = buflen_needed * 8;
 		numa_bitmask_setall(&bitmask);
@@ -1353,11 +1357,13 @@ numa_node_to_cpus_v2(int node, struct bitmask *buffer)
 	sprintf(fn, "/sys/devices/system/node/node%d/cpumap", node); 
 	f = fopen(fn, "r"); 
 	if (!f || getdelim(&line, &len, '\n', f) < 1) { 
-		numa_warn(W_nosysfs2,
-		   "/sys not mounted or invalid. Assuming one node: %s",
-			  strerror(errno)); 
-		numa_warn(W_nosysfs2,
-		   "(cannot open or correctly parse %s)", fn);
+		if (numa_bitmask_isbitset(numa_nodes_ptr, node)) {
+			numa_warn(W_nosysfs2,
+			   "/sys not mounted or invalid. Assuming one node: %s",
+				  strerror(errno)); 
+			numa_warn(W_nosysfs2,
+			   "(cannot open or correctly parse %s)", fn);
+		}
 		numa_bitmask_setall(mask);
 		err = -1;
 	} 
@@ -1380,8 +1386,12 @@ numa_node_to_cpus_v2(int node, struct bitmask *buffer)
 		if (mask != buffer)
 			numa_bitmask_free(mask);
 	} else {
-		node_cpu_mask_v2[node] = mask;
-	} 
+		/* we don't want to cache faulty result */
+		if (!err)
+			node_cpu_mask_v2[node] = mask;
+		else
+			numa_bitmask_free(mask);
+	}
 	return err; 
 }
 __asm__(".symver numa_node_to_cpus_v2,numa_node_to_cpus@@libnuma_1.2");
@@ -1403,7 +1413,10 @@ int numa_node_of_cpu(int cpu)
 	bmp = numa_bitmask_alloc(ncpus);
 	nnodes = numa_max_node();
 	for (node = 0; node <= nnodes; node++){
-		numa_node_to_cpus_v2_int(node, bmp);
+		if (numa_node_to_cpus_v2_int(node, bmp) < 0) {
+			/* It's possible for the node to not exist */
+			continue;
+		}
 		if (numa_bitmask_isbitset(bmp, cpu)){
 			ret = node;
 			goto end;

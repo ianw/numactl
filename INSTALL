@@ -1,14 +1,14 @@
 Building numactl
 ----------------
 
-      $ ./autogen.sh
+    TL;DR:
+
       $ ./configure
       $ make
       # make install
 
     Start by configuring the build running the configure script:
 
-      $ ./autogen.sh
       $ ./configure
 
     You can pass options to configure to define build options, to pass it
@@ -42,8 +42,6 @@ Building numactl
 
       $ make install DESTDIR=/path/to/staging/numactl
 
-Source code maintenance:
-    https://github.com/numactl/numactl/
 
 Using a snapshot from the Git repository
 

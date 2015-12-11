@@ -3,7 +3,10 @@
 
 VALGRIND=${VALGRIND:-}
 
-export LD_LIBRARY_PATH=`pwd`/..
+testdir=`dirname "$0"`
+: ${srcdir:=${testdir}/..}
+: ${builddir:=${srcdir}}
+export PATH=${builddir}:$PATH
 
 T() {
        echo "$@" 
@@ -14,15 +17,12 @@ T() {
        echo
 }
 
-# various tests
-chmod 755 bind_range
-
 # still broken
-#T ./prefered
-T ./distance
-T ./nodemap
-T ./checkaffinity
-T ./checktopology
-T ./tbitmap
-T ./bind_range
-#T ./randmap
+#T "${builddir}/test/prefered"
+T "${builddir}/test/distance"
+T "${builddir}/test/nodemap"
+T "${srcdir}/test/checkaffinity"
+T "${srcdir}/test/checktopology"
+T "${builddir}/test/tbitmap"
+T "${srcdir}/test/bind_range"
+#T "${builddir}/test/randmap"
